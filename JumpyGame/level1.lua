@@ -16,6 +16,9 @@ physics.start(); physics.pause()
 -- forward declarations and other locals
 local screenW, screenH, halfW = display.contentWidth, display.contentHeight, display.contentWidth*0.5
 
+local screenMax = math.max(display.contentHeight, display.contentWidth)
+local screenMin = math.min(display.contentHeight, display.contentWidth)
+
 -----------------------------------------------------------------------------------------
 -- BEGINNING OF YOUR IMPLEMENTATION
 -- 
@@ -24,18 +27,32 @@ local screenW, screenH, halfW = display.contentWidth, display.contentHeight, dis
 -- 
 -----------------------------------------------------------------------------------------
 
+local Map = { width = 50, height = 600}
+Map[1] = { y = 10, x = 25, width = 48, height = 4 }
+Map[2] = { y = 15, x = 5, width = 3, height = 3 }
+
+-- this determines how much x and y in Map are scaled
+local scaleMapX
+local scaleMapY 
+
+local function print_obstacle(obstacle)
+	print ("obstacle x=", obstacle.x, " y=", obstacle.y, " width=", obstacle.width, " height=", obstacle.height)
+end
+
+
 -- Called when the scene's view does not exist:
 function scene:createScene( event )
 	local group = self.view
 
 	-- create a grey rectangle as the backdrop
-	local background = display.newRect( 0, 0, screenW, screenH )
+	local background = display.newRect( 0, 0, screenMax, screenMax )
 	background.anchorX = 0
 	background.anchorY = 0
 	background:setFillColor( .5 )
 	
 	-- make a crate (off-screen), position it, and rotate slightly
-	local crate = display.newImageRect( "crate.png", 90, 90 )
+	--local crate = display.newImageRect( "crate.png", 90, 90 )
+	local crate = display.newRect(0, 0, screenMax / 10, screenMax / 10)
 	crate.x, crate.y = 160, -100
 	crate.rotation = 15
 	
@@ -56,7 +73,29 @@ function scene:createScene( event )
 	group:insert( background )
 	group:insert( grass)
 	group:insert( crate )
+	
+	
+	-- this determines how much x and y in Map are scaled
+	local scaleMapX = screenMin / Map.width
+	local scaleMapY = screenMax / Map.height
+
+	
+	local object1 = display.newRect(0, 0, Map[1].width * scaleMapX, Map[1].height * scaleMapY)
+	object1.x, object1.y = Map[1].x * scaleMapX, screenH - Map[1].y * scaleMapY
+	
+	local object2 = display.newRect(0, 0, Map[2].width * scaleMapX, Map[2].height * scaleMapY)
+	object2.x, object2.y = Map[2].x * scaleMapX, screenH - Map[2].y * scaleMapY
+	
+	print("screenH=", screenH, " screenW=", screenW)
+	print("scaleMapX=", scaleMapX, " scaleMapY=", scaleMapY)
+	
+	group:insert(object1)
+	group:insert(object2)
+	
+	print_obstacle(object1)
+	print_obstacle(object2)
 end
+
 
 -- Called immediately after scene has moved onscreen:
 function scene:enterScene( event )
