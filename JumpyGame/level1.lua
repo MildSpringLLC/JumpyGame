@@ -7,6 +7,10 @@
 local storyboard = require( "storyboard" )
 local scene = storyboard.newScene()
 
+local actor = {}
+
+local touchedPoint = nil
+
 -- include Corona's "physics" library
 local physics = require "physics"
 physics.start(); physics.pause()
@@ -19,6 +23,8 @@ local screenW, screenH, halfW = display.contentWidth, display.contentHeight, dis
 local screenMax = math.max(display.contentHeight, display.contentWidth)
 local screenMin = math.min(display.contentHeight, display.contentWidth)
 
+local onRuntimeTouch
+
 -----------------------------------------------------------------------------------------
 -- BEGINNING OF YOUR IMPLEMENTATION
 -- 
@@ -27,13 +33,30 @@ local screenMin = math.min(display.contentHeight, display.contentWidth)
 -- 
 -----------------------------------------------------------------------------------------
 
-local Map = { width = 50, height = 600}
+local Map = { width = 50, height = 600, actorX = 25, actorY = 30, actorRadius = 5 }
 Map[1] = { y = 10, x = 25, width = 48, height = 4 }
 Map[2] = { y = 15, x = 5, width = 3, height = 3 }
+Map[3] = { y = 25, x = 45, width = 3, height = 3 }
 
 -- this determines how much x and y in Map are scaled
-local scaleMapX
-local scaleMapY 
+local scaleMap
+local xOffset
+
+
+
+-- utility functions
+function distance(x1, y1, x2, y2)
+	return math.sqrt((x1-x2)^2+(y1-y2)^2)
+end
+
+local function getAngleDegrees(x1, y1, x2, y2)
+  local PI = 3.14159265358
+  local deltaY = y2 - y1
+  local deltaX = x2 - x1
+  return 360 - (((math.atan2(deltaY, deltaX) * 180)/ PI)+360)%360
+end
+
+-- end of utility functions
 
 local function print_obstacle(obstacle)
 	print ("obstacle x=", obstacle.x, " y=", obstacle.y, " width=", obstacle.width, " height=", obstacle.height)
@@ -76,21 +99,33 @@ function scene:createScene( event )
 	
 	
 	-- this determines how much x and y in Map are scaled
-	local scaleMapX = screenMin / Map.width
-	local scaleMapY = screenMax / Map.height
+	scaleMap = (screenMin / Map.width) * 0.9
+	xOffset = display.contentWidth * 0.05
 
 	
-	local object1 = display.newRect(0, 0, Map[1].width * scaleMapX, Map[1].height * scaleMapY)
-	object1.x, object1.y = Map[1].x * scaleMapX, screenH - Map[1].y * scaleMapY
+	local object1 = display.newRect(0, 0, Map[1].width * scaleMap, Map[1].height * scaleMap)
+	object1.x, object1.y = Map[1].x * scaleMap + xOffset, screenH - Map[1].y * scaleMap
 	
-	local object2 = display.newRect(0, 0, Map[2].width * scaleMapX, Map[2].height * scaleMapY)
-	object2.x, object2.y = Map[2].x * scaleMapX, screenH - Map[2].y * scaleMapY
+	local object2 = display.newRect(0, 0, Map[2].width * scaleMap, Map[2].height * scaleMap)
+	object2.x, object2.y = Map[2].x * scaleMap + xOffset, screenH - Map[2].y * scaleMap
+	
+	local object3 = display.newRect(0, 0, Map[3].width * scaleMap, Map[3].height * scaleMap)
+	object3.x, object3.y = Map[3].x * scaleMap + xOffset, screenH - Map[3].y * scaleMap
+	
+	actor = display.newCircle(0, 0, Map.actorRadius * scaleMap)
+	actor.x = Map.actorX * scaleMap + xOffset
+	actor.y = screenH - Map.actorY * scaleMap
+	
+	physics.addBody( actor, { density=1.0, friction=0.3, bounce=0.3 } )
 	
 	print("screenH=", screenH, " screenW=", screenW)
-	print("scaleMapX=", scaleMapX, " scaleMapY=", scaleMapY)
+	print("scaleMap=", scaleMap)
 	
 	group:insert(object1)
 	group:insert(object2)
+	group:insert(object3)
+	
+	group:insert(actor)
 	
 	print_obstacle(object1)
 	print_obstacle(object2)
@@ -101,16 +136,18 @@ end
 function scene:enterScene( event )
 	local group = self.view
 	
-	physics.start()
+	Runtime:addEventListener( "touch", onRuntimeTouch )		
 	
+	physics.start()	
 end
 
 -- Called when scene is about to move offscreen:
-function scene:exitScene( event )
+function scene:exitScene( event )	
 	local group = self.view
 	
-	physics.stop()
-	
+	Runtime:removeEventListener( "touch", onRuntimeTouch )
+		
+	physics.stop()	
 end
 
 -- If scene's view is removed, scene:destroyScene() will be called just prior to:
@@ -119,6 +156,40 @@ function scene:destroyScene( event )
 	
 	package.loaded[physics] = nil
 	physics = nil
+end
+
+
+-- functions that were pre-declared
+
+onRuntimeTouch = function ( event )
+	if event.phase == "canceled" or event.phase == "ended"
+	then
+		if touchedPoint then
+			print ("event ended, actorx is ", actor.x, " actory is ", actor.y)
+			
+			local distance = distance(touchedPoint.x, touchedPoint.y, event.x, event.y)
+			
+			local degrees = getAngleDegrees(touchedPoint.x, touchedPoint.y, event.x, event.y)
+			-- from: http://stackoverflow.com/questions/11343097/corona-sdk-how-to-make-object-move-forward
+			local angle = math.rad(degrees)  -- we need angle in radians
+			local xComp = math.cos(angle)  -- the x component
+			local yComp = -math.sin(angle)  -- the y component is negative because 
+					--  "up" the screen is negative
+
+			local forceMag = 0.5 -- change this value to apply more or less force
+			-- now apply the force
+			actor:applyLinearImpulse(forceMag*xComp * distance, forceMag*yComp * distance, actor.x, actor.y)
+			
+			print ("degrees=", degrees, " angle=", angle, " applied: x=", forceMag*xComp, " y = ", forceMag*yComp)
+		end
+		touchedPoint = nil
+	elseif event.phase == "began"
+	then
+		touchedPoint = {}
+		touchedPoint.x, touchedPoint.y = event.x, event.y
+		
+		print ("event began")
+	end
 end
 
 -----------------------------------------------------------------------------------------
