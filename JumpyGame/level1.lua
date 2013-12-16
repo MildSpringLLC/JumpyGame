@@ -35,8 +35,8 @@ local onRuntimeTouch
 
 local Map = { width = 50, height = 600, actorX = 25, actorY = 30, actorRadius = 5 }
 Map[1] = { y = 10, x = 25, width = 48, height = 4 }
-Map[2] = { y = 15, x = 5, width = 3, height = 3 }
-Map[3] = { y = 25, x = 45, width = 3, height = 3 }
+Map[2] = { y = 15, x = 5, width = 10, height = 3 }
+Map[3] = { y = 25, x = 45, width = 20, height = 3 }
 
 -- this determines how much x and y in Map are scaled
 local scaleMap
@@ -50,10 +50,10 @@ function distance(x1, y1, x2, y2)
 end
 
 local function getAngleDegrees(x1, y1, x2, y2)
-  local PI = 3.14159265358
-  local deltaY = y2 - y1
-  local deltaX = x2 - x1
-  return 360 - (((math.atan2(deltaY, deltaX) * 180)/ PI)+360)%360
+	local PI = 3.14159265358
+	local deltaY = y2 - y1
+	local deltaX = x2 - x1
+	return 360 - (((math.atan2(deltaY, deltaX) * 180)/ PI)+360)%360
 end
 
 -- end of utility functions
@@ -75,12 +75,12 @@ function scene:createScene( event )
 	
 	-- make a crate (off-screen), position it, and rotate slightly
 	--local crate = display.newImageRect( "crate.png", 90, 90 )
-	local crate = display.newRect(0, 0, screenMax / 10, screenMax / 10)
-	crate.x, crate.y = 160, -100
-	crate.rotation = 15
+	--local crate = display.newRect(0, 0, screenMax / 10, screenMax / 10)
+	--crate.x, crate.y = 160, -100
+	--crate.rotation = 15
 	
 	-- add physics to the crate
-	physics.addBody( crate, { density=1.0, friction=0.3, bounce=0.3 } )
+	--physics.addBody( crate, { density=1.0, friction=0.3, bounce=0.3 } )
 	
 	-- create a grass object and add physics (with custom shape)
 	local grass = display.newImageRect( "grass.png", screenW, 82 )
@@ -95,40 +95,47 @@ function scene:createScene( event )
 	-- all display objects must be inserted into group
 	group:insert( background )
 	group:insert( grass)
-	group:insert( crate )
+	--group:insert( crate )
 	
 	
 	-- this determines how much x and y in Map are scaled
 	scaleMap = (screenMin / Map.width) * 0.9
 	xOffset = display.contentWidth * 0.05
+	
+	local left = display.newRect(0, 0, 1, display.contentHeight )
+	left:setFillColor(0/255)
+	left.x, left.y = xOffset, display.contentHeight/2
+	physics.addBody( left, "static", { friction=100, bounce=0.1 } )
+	
+	local right = display.newRect(0, 0, 1, display.contentHeight )
+	right:setFillColor(0/255)
+	right.x, right.y = display.contentWidth - xOffset, display.contentHeight/2
+	physics.addBody( right, "static", { friction=100, bounce=0.1 } )
 
 	
-	local object1 = display.newRect(0, 0, Map[1].width * scaleMap, Map[1].height * scaleMap)
-	object1.x, object1.y = Map[1].x * scaleMap + xOffset, screenH - Map[1].y * scaleMap
-	
-	local object2 = display.newRect(0, 0, Map[2].width * scaleMap, Map[2].height * scaleMap)
-	object2.x, object2.y = Map[2].x * scaleMap + xOffset, screenH - Map[2].y * scaleMap
-	
-	local object3 = display.newRect(0, 0, Map[3].width * scaleMap, Map[3].height * scaleMap)
-	object3.x, object3.y = Map[3].x * scaleMap + xOffset, screenH - Map[3].y * scaleMap
-	
+	for i = 1, #Map do
+		local object = display.newRect(0, 0, Map[i].width * scaleMap, Map[i].height * scaleMap)
+		object.x, object.y = Map[i].x * scaleMap + xOffset, screenH - Map[i].y * scaleMap
+		group:insert(object)
+		print_obstacle(object)
+		
+		physics.addBody( object, "static", { friction=100, bounce = 0.0 } )
+	end
+
 	actor = display.newCircle(0, 0, Map.actorRadius * scaleMap)
+	--actor = display.newRect(0, 0, Map.actorRadius * scaleMap * 2, Map.actorRadius * scaleMap * 2)
 	actor.x = Map.actorX * scaleMap + xOffset
-	actor.y = screenH - Map.actorY * scaleMap
+	actor.y = screenH - Map.actorY * scaleMap	
 	
-	physics.addBody( actor, { density=1.0, friction=0.3, bounce=0.3 } )
+	--physics.addBody( actor, { density=1.0, friction=0.3, bounce=0.3 } )
+	physics.addBody( actor, { density=1.0, friction=100, bounce=0.0 } )
+	actor.isFixedRotation  = true
 	
 	print("screenH=", screenH, " screenW=", screenW)
 	print("scaleMap=", scaleMap)
 	
-	group:insert(object1)
-	group:insert(object2)
-	group:insert(object3)
-	
 	group:insert(actor)
 	
-	print_obstacle(object1)
-	print_obstacle(object2)
 end
 
 
