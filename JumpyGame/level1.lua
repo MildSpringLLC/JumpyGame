@@ -15,6 +15,8 @@ local touchedPoint = nil
 local physics = require "physics"
 physics.start(); physics.pause()
 
+--physics.setGravity( 0, 20 )
+
 --------------------------------------------
 
 -- forward declarations and other locals
@@ -35,8 +37,11 @@ local onRuntimeTouch
 
 local Map = { width = 50, height = 600, actorX = 25, actorY = 30, actorRadius = 5 }
 Map[1] = { y = 10, x = 25, width = 48, height = 4 }
-Map[2] = { y = 15, x = 5, width = 10, height = 3 }
-Map[3] = { y = 25, x = 45, width = 20, height = 3 }
+Map[2] = { y = 25, x = 5, width = 10, height = 3 }
+Map[3] = { y = 45, x = 45, width = 10, height = 3 }
+Map[4] = { y = 65, x = 5, width = 10, height = 3 }
+Map[5] = { y = 95, x = 25, width = 15, height = 3 }
+Map[6] = { y = 125, x = 45, width = 15, height = 3 }
 
 -- this determines how much x and y in Map are scaled
 local scaleMap
@@ -66,6 +71,8 @@ end
 -- Called when the scene's view does not exist:
 function scene:createScene( event )
 	local group = self.view
+	
+	local newGroup = display.newGroup()
 
 	-- create a grey rectangle as the backdrop
 	local background = display.newRect( 0, 0, screenMax, screenMax )
@@ -116,10 +123,12 @@ function scene:createScene( event )
 	for i = 1, #Map do
 		local object = display.newRect(0, 0, Map[i].width * scaleMap, Map[i].height * scaleMap)
 		object.x, object.y = Map[i].x * scaleMap + xOffset, screenH - Map[i].y * scaleMap
-		group:insert(object)
+		newGroup:insert(object)
 		print_obstacle(object)
 		
 		physics.addBody( object, "static", { friction=100, bounce = 0.0 } )
+		
+		transition.to(object, { time=20000, y = object.y+ (Map.width * scaleMap) } )
 	end
 
 	actor = display.newCircle(0, 0, Map.actorRadius * scaleMap)
@@ -185,9 +194,9 @@ onRuntimeTouch = function ( event )
 
 			local forceMag = 0.5 -- change this value to apply more or less force
 			-- now apply the force
-			actor:applyLinearImpulse(forceMag*xComp * distance, forceMag*yComp * distance, actor.x, actor.y)
+			actor:applyLinearImpulse(forceMag*xComp * distance / 2, forceMag*yComp * distance / 2, actor.x, actor.y)
 			
-			print ("degrees=", degrees, " angle=", angle, " applied: x=", forceMag*xComp, " y = ", forceMag*yComp)
+			print ("degrees=", degrees, " angle=", angle, " applied: x=", forceMag*xComp / 2, " y = ", forceMag*yComp / 2)
 		end
 		touchedPoint = nil
 	elseif event.phase == "began"
