@@ -75,10 +75,14 @@ function scene:createScene( event )
 	local newGroup = display.newGroup()
 
 	-- create a grey rectangle as the backdrop
-	local background = display.newRect( 0, 0, screenMax, screenMax )
-	background.anchorX = 0
-	background.anchorY = 0
-	background:setFillColor( .5 )
+	--local background = display.newRect( 0, 0, screenMax, screenMax )
+	--background.anchorX = 0
+	--background.anchorY = 0
+	--background:setFillColor( .5 )
+	
+	local background = display.newImage( "backgroundTest.jpg", true )
+	background.x = display.contentWidth / 2
+	background.y = display.contentHeight / 2
 	
 	-- make a crate (off-screen), position it, and rotate slightly
 	--local crate = display.newImageRect( "crate.png", 90, 90 )
